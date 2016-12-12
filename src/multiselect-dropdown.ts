@@ -37,11 +37,12 @@ export interface group {
 export interface IMultiSelectOption {
   id: number;
   name: string;
-  group: string;
-  first: boolean;
+  group?: string;
+  first?: boolean;
 }
 
 export interface IMultiSelectSettings {
+  layout?: 'horizontal' | 'vertical',
   pullRight?: boolean;
   enableSearch?: boolean;
   checkedStyle?: 'checkboxes' | 'glyphicon';
@@ -70,7 +71,13 @@ export interface IMultiSelectTexts {
 })
 export class MultiSelectSearchFilter {
   transform(options: Array<IMultiSelectOption>, args: string): Array<IMultiSelectOption> {
-    return options.filter((option: IMultiSelectOption) => option.name.toLowerCase().indexOf((args || '').toLowerCase()) > -1 || option.group.toLowerCase().indexOf((args || '').toLowerCase()) > -1);
+    return options.filter((option: IMultiSelectOption) => {
+      if(option.group) {
+        return option.name.toLowerCase().indexOf((args || '').toLowerCase()) > -1 || option.group.toLowerCase().indexOf((args || '').toLowerCase()) > -1
+      } else {
+        return option.name.toLowerCase().indexOf((args || '').toLowerCase()) > -1
+      }
+    });
   }
 }
 
@@ -79,9 +86,12 @@ export class MultiSelectSearchFilter {
   providers: [MULTISELECT_VALUE_ACCESSOR],
   styles: [`
 		a { outline: none !important; }
+		.horizontal { width: 100%; }
+		.horizontal .option { width: 25%; display: inline-block; margin-left: -3px;}
+		
 	`],
   template: `
-        <div class="btn-group">
+        <div class="btn-group" [ngClass]="{'horizontal': settings.layout === 'horizontal'}">
             <button type="button" class="dropdown-toggle" [ngClass]="settings.buttonClasses" 
             (click)="toggleDropdown()">{{ title }}&nbsp;<span class="caret"></span></button>
             <ul *ngIf="isVisible" class="dropdown-menu" [class.pull-right]="settings.pullRight" 
@@ -116,19 +126,21 @@ export class MultiSelectSearchFilter {
                     </a>
                 </li>
                 <li *ngIf="settings.showCheckAll || settings.showUncheckAll" class="divider"></li>
-                <li *ngFor="let option of options | searchFilter:searchFilterText">
-                    <template [ngIf]="option.first">
-                      <a href="javascript:;" role="menuitem" tabindex="-1" (click)="checkGroup(option.group)">
+                <template ngFor let-option [ngForOf]="options | searchFilter:searchFilterText">
+                    <li *ngIf="option.first && option.group">
+                      <a class="group-name" href="javascript:;" role="menuitem" tabindex="-1" (click)="checkGroup(option.group)">
                         <strong>{{option.group}}</strong>
                       </a>
-                    </template>
-                    <a href="javascript:;" role="menuitem" tabindex="-1" (click)="setSelected($event, option)">
-                        <input *ngIf="settings.checkedStyle == 'checkboxes'" type="checkbox" [checked]="isSelected(option)" />
-                        <span *ngIf="settings.checkedStyle == 'glyphicon'" style="width: 16px;" 
-                        class="glyphicon" [class.glyphicon-ok]="isSelected(option)"></span>
-                        {{ option.name }}
-                    </a>
-                </li>
+                    </li>
+                    <li class="option" [ngClass]="{'option_first': option.first}">
+                        <a href="javascript:;" role="menuitem" tabindex="-1" (click)="setSelected($event, option)">
+                            <input *ngIf="settings.checkedStyle == 'checkboxes'" type="checkbox" [checked]="isSelected(option)" />
+                            <span *ngIf="settings.checkedStyle == 'glyphicon'" style="width: 16px;" 
+                            class="glyphicon" [class.glyphicon-ok]="isSelected(option)"></span>
+                            {{ option.name }}
+                        </a>
+                    </li>
+                </template>
             </ul>
         </div>
     `
@@ -152,6 +164,7 @@ export class MultiselectDropdown implements OnInit, DoCheck, ControlValueAccesso
     }
     if (!parentFound) {
       this.isVisible = false;
+      this.dropdownClosed.emit();
     }
   }
 
@@ -167,6 +180,7 @@ export class MultiselectDropdown implements OnInit, DoCheck, ControlValueAccesso
   isVisible: boolean = false;
   searchFilterText: string = '';
   defaultSettings: IMultiSelectSettings = {
+    layout: 'vertical',
     pullRight: false,
     enableSearch: false,
     checkedStyle: 'checkboxes',
