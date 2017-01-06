@@ -152,6 +152,7 @@ export class MultiselectDropdown implements OnInit, DoCheck, ControlValueAccesso
   @Input() texts: IMultiSelectTexts;
   @Output() selectionLimitReached = new EventEmitter();
   @Output() dropdownClosed = new EventEmitter();
+  @Output() dropdownOpened = new EventEmitter();
 
   @HostListener('document: click', ['$event.target'])
   onClick(target: HTMLElement) {
@@ -291,6 +292,8 @@ export class MultiselectDropdown implements OnInit, DoCheck, ControlValueAccesso
     this.isVisible = !this.isVisible;
     if (!this.isVisible) {
       this.dropdownClosed.emit();
+    } else {
+      this.dropdownOpened.emit();
     }
   }
 
